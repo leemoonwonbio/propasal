@@ -1,289 +1,52 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OOO님을 위한 개인 맞춤형 치료 플랜</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; }
-        .container-box { background-color: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        .btn { transition: all 0.2s ease-in-out; }
-        .btn:hover { transform: translateY(-2px); }
-        .btn-primary { background-color: #2563eb; color: white; }
-        .btn-primary:hover { background-color: #1d4ed8; }
-        .cart-item:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
-    </style>
-</head>
-<body class="bg-slate-50 p-4 sm:p-8">
-
-    <div class="max-w-4xl mx-auto">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-800">
-                <span id="customer-name" class="text-blue-600">OOO</span>님을 위한<br>맞춤형 치료 플랜
-            </h1>
-            <p class="text-slate-500 mt-2">원장님의 전문적인 제안을 확인하고, 자유롭게 플랜을 조정하여 결제를 완료하세요.</p>
-        </div>
-
-        <div class="container-box mb-8">
-            <h2 class="text-2xl font-semibold text-slate-700 mb-4">👨‍⚕️ 원장님의 종합 소견</h2>
-            <p id="doctor-notes-display" class="text-slate-600 mb-4 bg-blue-50 p-4 rounded-md leading-relaxed"></p>
-        </div>
-
-        <div class="container-box">
-            <h2 class="text-2xl font-semibold text-slate-700 mb-4">🛒 나의 결제 플랜 (직접 수정 가능)</h2>
-            <div id="cart-items" class="space-y-6 mb-4"></div>
-            <div id="empty-cart" class="text-center text-slate-500 py-4 hidden"><p>플랜에 포함된 항목이 없습니다.</p></div>
-
-            <div class="mt-6 pt-6 border-t">
-                 <h3 class="text-lg font-semibold text-slate-700 mb-2">다른 제품 추가하기</h3>
-                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                     <select id="add-product-select" class="w-full p-2 border rounded-md"></select>
-                     <input id="add-product-quantity" type="number" value="1" min="1" class="w-full p-2 border rounded-md" placeholder="수량/개월">
-                     <button id="add-product-btn" class="w-full p-2 rounded-lg btn btn-secondary font-semibold">플랜에 추가 +</button>
-                 </div>
-            </div>
-
-            <hr class="my-6">
-
-            <div class="space-y-2">
-                <div class="flex justify-between items-center text-slate-600">
-                    <span>상품 금액 합계</span>
-                    <span id="original-total">0 원</span>
-                </div>
-                <div class="flex justify-between items-center text-green-600 font-semibold">
-                    <span>장기 플랜 할인</span>
-                    <span id="total-discount">- 0 원</span>
-                </div>
-                 <div class="flex justify-between items-center mt-4 pt-4 border-t">
-                    <span class="text-lg font-bold text-slate-800">최종 결제 금액</span>
-                    <span id="final-total" class="text-3xl font-bold text-slate-800">0 원</span>
-                 </div>
-            </div>
-
-            <button id="checkout-btn" class="w-full mt-8 p-4 rounded-lg btn btn-primary font-bold text-xl shadow-lg">결제 진행하기</button>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const productMaster = {
-                'Body Recording Core_1': { name: 'Body Recording Core', duration: 1, p1: 480000, type: 'duration', desc: "체성분, 스트레스, 혈관 건강 등 10가지 이상의 건강 지표를 심층 분석하여 맞춤형 건강 관리 솔루션을 제공하는 기본 프로그램입니다.", shopifyVariantId: '4123456789' },
-                'Body Recording Core_3': { name: 'Body Recording Core', duration: 3, p1: 480000, p3: 432000, type: 'duration', desc: "3개월 집중 관리 플랜입니다. 꾸준한 관리를 통해 건강 개선 효과를 극대화할 수 있습니다.", shopifyVariantId: '4123456790' },
-                'Body Recording Core_6': { name: 'Body Recording Core', duration: 6, p1: 480000, p6: 408000, type: 'duration', desc: "6개월 장기 관리 플랜으로, 가장 합리적인 가격으로 지속적인 건강 관리가 가능합니다.", shopifyVariantId: '4123456791' },
-                'Body Recording Core_12': { name: 'Body Recording Core', duration: 12, p1: 480000, p12: 384000, type: 'duration', desc: "12개월 프리미엄 플랜입니다. 생활 습관 전반에 걸친 변화를 통해 최상의 건강 상태를 유지할 수 있습니다.", shopifyVariantId: '4123456792' },
-                'LEEMOONWON Shampoo 200ml': { name: 'LEEMOONWON Shampoo 200ml', p1: 65000, type: 'quantity', desc: "민감한 두피를 위한 저자극 탈모 증상 완화 샴푸입니다. 꾸준히 사용하여 두피 건강을 개선하세요.", shopifyVariantId: '4123456800' },
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // ⭐ 이 함수가 가장 중요합니다.
+        function getDataFromUrl() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data');
+                if (dataParam) {
+                    // URL 인코딩을 해석(디코딩)하는 decodeURIComponent() 함수를 사용합니다.
+                    // atob() 함수는 더 이상 사용하지 않습니다.
+                    const decodedData = JSON.parse(decodeURIComponent(dataParam));
+                    return decodedData;
+                }
+            } catch (error) {
+                console.error("URL 데이터 파싱 오류:", error);
+            }
+            // URL에 데이터가 없거나 오류 발생 시 사용할 샘플 데이터입니다.
+            console.warn("URL 파라미터('data')를 찾을 수 없어 샘플 데이터로 페이지를 초기화합니다.");
+            return {
+                patient: { name: "OOO" },
+                proposal: [ { name: 'Body Recording Core', value: 6 }, { name: 'LEEMOONWON Shampoo 200ml', value: 2 } ],
+                notes: "환자분의 현재 상태에 맞춰 제안된 초기 플랜입니다. 필요에 따라 자유롭게 수정하실 수 있습니다."
             };
+        }
 
-            let cartItems = [];
-            const shopifyDomain = 'your-store-name.myshopify.com'; // ⭐ 여기에 실제 쇼피파이 도메인을 입력하세요.
+        const productMaster = {
+            'Body Recording Core_1': { name: 'Body Recording Core', duration: 1, p1: 480000, type: 'duration', desc: "...", shopifyVariantId: '4123456789' },
+            'Body Recording Core_3': { name: 'Body Recording Core', duration: 3, p1: 480000, p3: 432000, type: 'duration', desc: "...", shopifyVariantId: '4123456790' },
+            'Body Recording Core_6': { name: 'Body Recording Core', duration: 6, p1: 480000, p6: 408000, type: 'duration', desc: "...", shopifyVariantId: '4123456791' },
+            'Body Recording Core_12': { name: 'Body Recording Core', duration: 12, p1: 480000, p12: 384000, type: 'duration', desc: "...", shopifyVariantId: '4123456792' },
+            'LEEMOONWON Shampoo 200ml': { name: 'LEEMOONWON Shampoo 200ml', p1: 65000, type: 'quantity', desc: "...", shopifyVariantId: '4123456800' },
+        };
 
-            function getDataFromUrl() {
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const dataParam = urlParams.get('data');
-                    if (dataParam) {
-                        const decodedData = JSON.parse(atob(dataParam));
-                        return decodedData;
-                    }
-                } catch (error) {
-                    console.error("URL 데이터 파싱 오류:", error);
-                }
-                
-                console.warn("URL 파라미터('data')를 찾을 수 없어 샘플 데이터로 페이지를 초기화합니다.");
-                return {
-                    patient: { name: "OOO" },
-                    proposal: [
-                        { name: 'Body Recording Core', value: 6 },
-                        { name: 'LEEMOONWON Shampoo 200ml', value: 2 }
-                    ],
-                    notes: "환자분의 현재 상태에 맞춰 제안된 초기 플랜입니다. 필요에 따라 자유롭게 수정하실 수 있습니다."
-                };
-            }
+        let cartItems = [];
+        const shopifyDomain = 'your-store-name.myshopify.com';
 
-            function loadProposalData() {
-                const proposalData = getDataFromUrl();
-                
-                if (!proposalData || !proposalData.patient) {
-                    console.error("잘못된 형식의 데이터입니다.");
-                    return;
-                }
+        function loadProposalData() {
+            const proposalData = getDataFromUrl();
 
-                document.getElementById('customer-name').textContent = proposalData.patient.name;
-                document.getElementById('doctor-notes-display').textContent = proposalData.notes;
-                
-                cartItems = proposalData.proposal.map(item => ({...item}));
-                
-                updateCartDisplay();
-            }
+            document.getElementById('customer-name').textContent = proposalData.patient.name;
+            document.getElementById('doctor-notes-display').textContent = proposalData.notes;
 
-            function initializeUI() {
-                const addProductSelect = document.getElementById('add-product-select');
-                const uniqueProducts = [...new Set(Object.values(productMaster).map(p => p.name))];
-                uniqueProducts.forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    addProductSelect.appendChild(option);
-                });
-                loadProposalData();
-            }
+            cartItems = proposalData.proposal.map(item => ({...item}));
+            updateCartDisplay();
+        }
 
-            function updateCartDisplay() {
-                const cartItemsContainer = document.getElementById('cart-items');
-                const emptyCartEl = document.getElementById('empty-cart');
-                cartItemsContainer.innerHTML = '';
+        // (이하 updateCartDisplay, findProductInfo 등 나머지 모든 함수는 기존과 동일합니다)
+        // ... (기존 HTML에 있던 나머지 JS 코드를 여기에 그대로 두세요) ...
 
-                if (cartItems.length === 0) {
-                    emptyCartEl.classList.remove('hidden');
-                } else {
-                    emptyCartEl.classList.add('hidden');
-                }
-
-                let finalTotal = 0;
-                let originalTotal = 0;
-                
-                cartItems.forEach((item, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'cart-item py-6';
-                    const productInfo = findProductInfo(item.name, item.value);
-
-                    if (!productInfo) {
-                        console.error(`제품 정보를 찾을 수 없습니다: ${item.name}`);
-                        return;
-                    }
-
-                    const isDuration = productInfo.type === 'duration';
-                    
-                    const detailsHTML = isDuration ? `
-                        <select class="p-2 border rounded-md w-full" data-index="${index}" onchange="updateItemValue(this)">
-                            <option value="1" ${item.value === 1 ? 'selected' : ''}>1개월</option>
-                            <option value="3" ${item.value === 3 ? 'selected' : ''}>3개월 (10% 할인)</option>
-                            <option value="6" ${item.value === 6 ? 'selected' : ''}>6개월 (15% 할인)</option>
-                            <option value="12" ${item.value === 12 ? 'selected' : ''}>12개월 (20% 할인)</option>
-                        </select>
-                    ` : `<input type="number" value="${item.value}" min="1" class="p-2 border rounded-md w-24 text-center" data-index="${index}" onchange="updateItemValue(this)">`;
-
-                    const { discountedPrice, originalPrice } = calculatePrice(item.name, item.value);
-
-                    div.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div class="flex-grow pr-4">
-                                <h4 class="font-bold text-lg text-slate-800">${item.name}</h4>
-                                <p class="text-sm text-slate-600 mt-1">${productInfo.desc}</p>
-                            </div>
-                            <button class="text-red-500 hover:text-red-700 font-bold text-2xl" data-index="${index}" onclick="removeItem(this)">×</button>
-                        </div>
-                        <div class="flex justify-end items-center gap-4 mt-4">
-                            ${detailsHTML}
-                            <span class="font-semibold text-slate-800 w-32 text-right text-lg">${discountedPrice.toLocaleString()} 원</span>
-                        </div>`;
-                    cartItemsContainer.appendChild(div);
-                    finalTotal += discountedPrice;
-                    originalTotal += originalPrice;
-                });
-
-                const totalDiscount = originalTotal - finalTotal;
-                document.getElementById('original-total').textContent = `${originalTotal.toLocaleString()} 원`;
-                document.getElementById('total-discount').textContent = `- ${totalDiscount.toLocaleString()} 원`;
-                document.getElementById('final-total').textContent = `${finalTotal.toLocaleString()} 원`;
-            }
-            
-            function findProductInfo(productName, value) {
-                if (productMaster[`${productName}_${value}`]) {
-                    return productMaster[`${productName}_${value}`];
-                }
-                return Object.values(productMaster).find(p => p.name === productName);
-            }
-
-            function calculatePrice(productName, value) {
-                const productInfo = findProductInfo(productName, value);
-                if (!productInfo) return { discountedPrice: 0, originalPrice: 0 };
-                if (productInfo.type === 'quantity') {
-                    const price = productInfo.p1 * value;
-                    return { discountedPrice: price, originalPrice: price };
-                } else {
-                    const duration = value;
-                    let monthlyPrice = productInfo.p1;
-                    if (duration >= 12 && productInfo.p12) monthlyPrice = productInfo.p12;
-                    else if (duration >= 6 && productInfo.p6) monthlyPrice = productInfo.p6;
-                    else if (duration >= 3 && productInfo.p3) monthlyPrice = productInfo.p3;
-                    const discountedPrice = monthlyPrice * duration;
-                    const originalPrice = productInfo.p1 * duration;
-                    return { discountedPrice, originalPrice };
-                }
-            }
-            
-            window.updateItemValue = function(element) {
-                const index = parseInt(element.dataset.index, 10);
-                const newValue = parseInt(element.value, 10);
-                if (cartItems[index]) {
-                    cartItems[index].value = newValue;
-                    updateCartDisplay();
-                }
-            }
-
-            window.removeItem = function(element) {
-                cartItems.splice(parseInt(element.dataset.index), 1);
-                updateCartDisplay();
-            }
-
-            function addToCart(name, value) {
-                const productInfo = findProductInfo(name, value);
-                const existingItem = cartItems.find(item => item.name === name);
-                
-                if (existingItem && productInfo.type === 'quantity') {
-                      existingItem.value += value;
-                } else if (existingItem && productInfo.type === 'duration') {
-                      alert('기간제 상품은 이미 플랜에 포함되어 있습니다. 기존 항목의 기간을 변경해주세요.');
-                } else {
-                     cartItems.push({ name, value });
-                }
-            }
-
-            document.getElementById('add-product-btn').addEventListener('click', () => {
-                const name = document.getElementById('add-product-select').value;
-                const value = parseInt(document.getElementById('add-product-quantity').value, 10);
-                if(isNaN(value) || value < 1) {
-                    alert('수량/개월은 1 이상이어야 합니다.');
-                    return;
-                }
-                addToCart(name, value);
-                updateCartDisplay();
-            });
-
-            document.getElementById('checkout-btn').addEventListener('click', () => {
-                if(cartItems.length === 0) {
-                    alert('플랜에 추가된 항목이 없습니다.');
-                    return;
-                }
-                
-                let checkoutUrl = `https://${shopifyDomain}/cart/`;
-                const itemsForUrl = [];
-
-                cartItems.forEach(item => {
-                    const productInfo = findProductInfo(item.name, item.value);
-                    if (productInfo && productInfo.shopifyVariantId) {
-                        const quantity = productInfo.type === 'duration' ? 1 : item.value;
-                        itemsForUrl.push(`${productInfo.shopifyVariantId}:${quantity}`);
-                    } else {
-                         console.warn(`Shopify Variant ID를 찾을 수 없는 상품: ${item.name} (기간/수량: ${item.value})`);
-                    }
-                });
-
-                if (itemsForUrl.length > 0) {
-                    checkoutUrl += itemsForUrl.join(',');
-                    console.log("생성된 Shopify 결제 URL:", checkoutUrl);
-                    alert('Shopify 결제 페이지로 이동합니다! (브라우저 개발자 콘솔에서 생성된 URL을 확인하세요)');
-                    // window.location.href = checkoutUrl;
-                } else {
-                    alert('결제할 상품 정보를 찾을 수 없습니다. Shopify Variant ID를 확인해주세요.');
-                }
-            });
-
-            initializeUI();
-        });
-    </script>
-</body>
-</html>
+        initializeUI();
+    });
+</script>
