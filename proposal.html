@@ -50,15 +50,15 @@
             <div class="space-y-2">
                 <div class="flex justify-between items-center text-slate-600">
                     <span>상품 금액 합계</span>
-                    <span id="original-total">$0.00</span>
+                    <span id="original-total">0 원</span>
                 </div>
                 <div class="flex justify-between items-center text-green-600 font-semibold">
                     <span>장기 플랜 할인</span>
-                    <span id="total-discount">- $0.00</span>
+                    <span id="total-discount">- 0 원</span>
                 </div>
                  <div class="flex justify-between items-center mt-4 pt-4 border-t">
                     <span class="text-lg font-bold text-slate-800">최종 결제 금액</span>
-                    <span id="final-total" class="text-3xl font-bold text-slate-800">$0.00</span>
+                    <span id="final-total" class="text-3xl font-bold text-slate-800">0 원</span>
                  </div>
             </div>
 
@@ -68,24 +68,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // ⭐⭐⭐ [디버깅 코드 추가됨] ⭐⭐⭐
+            
             function getDataFromUrl() {
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
                     const dataParam = urlParams.get('data');
                     if (dataParam) {
-                        const decodedString = decodeURIComponent(dataParam);
-                        
-                        // 문제가 되는 원본 데이터를 콘솔에 출력합니다.
-                        console.log("--- Make.com에서 받은 원본 데이터 ---");
-                        console.log(decodedString);
-                        console.log("---------------------------------");
-                        
-                        const decodedData = JSON.parse(decodedString);
-                        return decodedData;
+                        return JSON.parse(decodeURIComponent(dataParam));
                     }
                 } catch (error) {
-                    // 오류가 발생해도 스크립트가 멈추지 않도록 샘플 데이터를 반환합니다.
                     console.error("URL 데이터 파싱 중 오류 발생:", error);
                 }
                 console.warn("URL에서 데이터를 찾을 수 없어 샘플 데이터로 초기화합니다.");
@@ -96,21 +87,18 @@
                 };
             }
 
+            // ⭐ [복원] Shopify API 연동 대신, 하드코딩된 가격표를 사용하는 방식으로 되돌립니다.
             const productMaster = {
-                '바디리코딩 코어_1': { name: '바디리코딩 코어', type: 'duration', desc: "1개월 기본 플랜", shopifyVariantId: '4123456789' },
-                '바디리코딩 코어_3': { name: '바디리코딩 코어', type: 'duration', desc: "3개월 집중 플랜", shopifyVariantId: '4123456790' },
-                '바디리코딩 코어_6': { name: '바디리코딩 코어', type: 'duration', desc: "6개월 장기 플랜", shopifyVariantId: '4123456791' },
-                '바디리코딩 코어_12': { name: '바디리코딩 코어', type: 'duration', desc: "12개월 프리미엄 플랜", shopifyVariantId: '4123456792' },
-                '이문원 샴푸 200ml': { name: '이문원 샴푸 200ml', p1: 65.00, type: 'quantity', desc: "탈모 증상 완화 샴푸", shopifyVariantId: '4123456800' },
-                '바디리코딩 버닝 컷_3': { name: '바디리코딩 버닝 컷', duration: 3, p1: 120.00, type: 'duration', desc: "체지방 감소 보조제", shopifyVariantId: '4123456803' },
+                '바디리코딩 코어_1': { name: '바디리코딩 코어', duration: 1, p1: 480000, type: 'duration', desc: "1개월 기본 플랜", shopifyVariantId: '4123456789' },
+                '바디리코딩 코어_3': { name: '바디리코딩 코어', duration: 3, p1: 480000, p3: 432000, type: 'duration', desc: "3개월 집중 플랜", shopifyVariantId: '4123456790' },
+                '바디리코딩 코어_6': { name: '바디리코딩 코어', duration: 6, p1: 480000, p6: 408000, type: 'duration', desc: "6개월 장기 플랜", shopifyVariantId: '4123456791' },
+                '바디리코딩 코어_12': { name: '바디리코딩 코어', duration: 12, p1: 480000, p12: 384000, type: 'duration', desc: "12개월 프리미엄 플랜", shopifyVariantId: '4123456792' },
+                '이문원 샴푸 200ml': { name: '이문원 샴푸 200ml', p1: 65000, type: 'quantity', desc: "탈모 증상 완화 샴푸", shopifyVariantId: '4123456800' },
+                '바디리코딩 버닝 컷_3': { name: '바디리코딩 버닝 컷', duration: 3, p1: 120000, type: 'duration', desc: "체지방 감소 보조제", shopifyVariantId: '4123456803' },
             };
             
             let cartItems = [];
             const shopifyDomain = 'your-store-name.myshopify.com';
-
-            function formatAsUSD(amount) {
-              return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-            }
             
             function loadProposalData() {
                 const proposalData = getDataFromUrl();
@@ -180,6 +168,7 @@
                     
                     const { discountedPrice, originalPrice } = calculatePrice(item.name, item.value);
 
+                    // ⭐ [복원] 가격 표시를 '원' 단위로 되돌립니다.
                     div.innerHTML = `
                         <div class="flex justify-between items-start">
                             <div class="flex-grow pr-4">
@@ -190,7 +179,7 @@
                         </div>
                         <div class="flex justify-end items-center gap-4 mt-4">
                             ${detailsHTML}
-                            <span class="font-semibold text-slate-800 w-32 text-right text-lg">${formatAsUSD(discountedPrice)}</span>
+                            <span class="font-semibold text-slate-800 w-32 text-right text-lg">${discountedPrice.toLocaleString()} 원</span>
                         </div>`;
                     cartItemsContainer.appendChild(div);
                     finalTotal += discountedPrice;
@@ -198,9 +187,9 @@
                 });
                 const totalDiscount = originalTotal - finalTotal;
 
-                document.getElementById('original-total').textContent = formatAsUSD(originalTotal);
-                document.getElementById('total-discount').textContent = `- ${formatAsUSD(totalDiscount)}`;
-                finalTotalEl.textContent = formatAsUSD(finalTotal);
+                document.getElementById('original-total').textContent = `${originalTotal.toLocaleString()} 원`;
+                document.getElementById('total-discount').textContent = `- ${totalDiscount.toLocaleString()} 원`;
+                finalTotalEl.textContent = `${finalTotal.toLocaleString()} 원`;
             }
 
             function findProductInfo(productName, value) {
@@ -253,10 +242,8 @@
             document.getElementById('add-product-btn').addEventListener('click', () => {
                 const name = document.getElementById('add-product-select').value;
                 const value = parseInt(document.getElementById('add-product-quantity').value, 10);
-                
                 const productInfo = findProductInfo(name, value);
                 if (!productInfo) return;
-
                 const existingItem = cartItems.find(item => item.name === name);
                 
                 if (existingItem && productInfo.type === 'quantity') {
@@ -274,10 +261,8 @@
                     alert('플랜에 추가된 항목이 없습니다.');
                     return;
                 }
-                
                 let checkoutUrl = `https://${shopifyDomain}/cart/`;
                 const itemsForUrl = [];
-
                 cartItems.forEach(item => {
                     const productInfo = findProductInfo(item.name, item.value);
                     if (productInfo && productInfo.shopifyVariantId) {
@@ -287,7 +272,6 @@
                         console.error("Shopify Variant ID not found for:", item.name, item.value);
                     }
                 });
-
                 if (itemsForUrl.length > 0) {
                     checkoutUrl += itemsForUrl.join(',');
                     console.log("생성된 Shopify 결제 URL:", checkoutUrl);
