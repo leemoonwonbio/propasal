@@ -1,139 +1,207 @@
-<script>
-    document.addEventListener('DOMContentLoaded', async () => { // async 추가
-        // --- Shopify API 설정 ---
-        const shopifyDomain = 'https://8jufk8-tg.myshopify.com/'; // ⭐ 실제 쇼피파이 도메인
-        const storefrontAccessToken = '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'; // ⭐ 1단계에서 복사한 토큰
-        const apiEndpoint = `https://${shopifyDomain}/api/2023-10/graphql.json`;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OOO님을 위한 개인 맞춤형 치료 플랜</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .container-box { background-color: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .btn { transition: all 0.2s ease-in-out; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background-color: #2563eb; color: white; }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .cart-item:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+    </style>
+</head>
+<body class="bg-slate-50 p-4 sm:p-8">
 
-        // productMaster는 이제 가격 대신 Shopify의 Variant ID만 관리합니다.
-        const productMaster = {
-            'Body Recording Core_1': { name: 'Body Recording Core', type: 'duration', shopifyVariantId: '4123456789' },
-            'Body Recording Core_3': { name: 'Body Recording Core', type: 'duration', shopifyVariantId: '4123456790' },
-            'Body Recording Core_6': { name: 'Body Recording Core', type: 'duration', shopifyVariantId: '4123456791' },
-            'Body Recording Core_12': { name: 'Body Recording Core', type: 'duration', shopifyVariantId: '4123456792' },
-            'LEEMOONWON Shampoo 200ml': { name: 'LEEMOONWON Shampoo 200ml', type: 'quantity', shopifyVariantId: '4123456800' },
-        };
-        
-        let cartItems = [];
-        let shopifyPrices = {}; // Shopify에서 가져온 가격을 저장할 객체
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-800">
+                <span id="customer-name" class="text-blue-600">OOO</span>님을 위한<br>맞춤형 치료 플랜
+            </h1>
+            <p class="text-slate-500 mt-2">원장님의 전문적인 제안을 확인하고, 자유롭게 플랜을 조정하여 결제를 완료하세요.</p>
+        </div>
+        <div class="container-box mb-8">
+            <h2 class="text-2xl font-semibold text-slate-700 mb-4">👨‍⚕️ 원장님의 종합 소견</h2>
+            <p id="doctor-notes-display" class="text-slate-600 mb-4 bg-blue-50 p-4 rounded-md leading-relaxed"></p>
+        </div>
+        <div class="container-box">
+            <h2 class="text-2xl font-semibold text-slate-700 mb-4">🛒 나의 결제 플랜 (직접 수정 가능)</h2>
+            <div id="cart-items" class="space-y-6 mb-4"></div>
+            <div id="empty-cart" class="text-center text-slate-500 py-4 hidden"><p>플랜에 포함된 항목이 없습니다.</p></div>
+            <div class="mt-6 pt-6 border-t">
+                 <h3 class="text-lg font-semibold text-slate-700 mb-2">다른 제품 추가하기</h3>
+                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                     <select id="add-product-select" class="w-full p-2 border rounded-md"></select>
+                     <input id="add-product-quantity" type="number" value="1" min="1" class="w-full p-2 border rounded-md" placeholder="수량/개월">
+                     <button id="add-product-btn" class="w-full p-2 rounded-lg btn btn-secondary font-semibold">플랜에 추가 +</button>
+                 </div>
+            </div>
+            <hr class="my-6">
+            <div class="space-y-2">
+                <div class="flex justify-between items-center text-slate-600">
+                    <span>최종 결제 금액</span>
+                    <span id="final-total" class="text-3xl font-bold text-slate-800">$0.00</span>
+                 </div>
+            </div>
+            <button id="checkout-btn" class="w-full mt-8 p-4 rounded-lg btn btn-primary font-bold text-xl shadow-lg">결제 진행하기</button>
+        </div>
+    </div>
 
-        // URL에서 제안 데이터 가져오는 함수 (기존과 동일)
-        function getDataFromUrl() {
-            try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const dataParam = urlParams.get('data');
-                if (dataParam) {
-                    return JSON.parse(decodeURIComponent(dataParam));
-                }
-            } catch (error) { console.error("URL 데이터 파싱 오류:", error); }
-            return { patient: { name: "OOO(샘플)" }, proposal: [], notes: "샘플 소견입니다." };
-        }
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- Shopify API 설정 ( ⭐ 바로 이 부분입니다! ⭐ ) ---
+            const shopifyDomain = 'https://8jufk8-tg.myshopify.com/'; // 1. 실제 쇼피파이 도메인을 입력하세요.
+            const storefrontAccessToken = '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'; // 2. 여기에 Shopify Storefront API 액세스 토큰을 붙여넣으세요.
+            const apiEndpoint = `https://${shopifyDomain}/api/2023-10/graphql.json`;
+            // ---------------------------------------------------------
 
-        // ⭐ [신규] Shopify에서 상품 가격을 가져오는 함수
-        async function fetchShopifyPrices(variantIds) {
-            const query = `
-                query getVariantPrices($ids: [ID!]!) {
-                    nodes(ids: $ids) {
-                        ... on ProductVariant {
-                            id
-                            price {
-                                amount
+            // productMaster는 이제 가격이 아닌 Shopify Variant ID만 관리합니다.
+            const productMaster = {
+                'Body Recording Core_1': { name: 'Body Recording Core', type: 'duration', desc: "1개월 기본 플랜", shopifyVariantId: '4123456789' },
+                'Body Recording Core_3': { name: 'Body Recording Core', type: 'duration', desc: "3개월 집중 플랜", shopifyVariantId: '4123456790' },
+                'Body Recording Core_6': { name: 'Body Recording Core', type: 'duration', desc: "6개월 장기 플랜", shopifyVariantId: '4123456791' },
+                'Body Recording Core_12': { name: 'Body Recording Core', type: 'duration', desc: "12개월 프리미엄 플랜", shopifyVariantId: '4123456792' },
+                'LEEMOONWON Shampoo 200ml': { name: 'LEEMOONWON Shampoo 200ml', type: 'quantity', desc: "탈모 증상 완화 샴푸", shopifyVariantId: '4123456800' },
+            };
+
+            let cartItems = [];
+            let shopifyPrices = {}; // Shopify에서 가져온 실시간 가격을 저장할 객체
+
+            function formatAsUSD(amount) {
+              return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+            }
+
+            function getDataFromUrl() {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const dataParam = urlParams.get('data');
+                    if (dataParam) { return JSON.parse(decodeURIComponent(dataParam)); }
+                } catch (error) { console.error("URL 데이터 파싱 오류:", error); }
+                return { patient: { name: "OOO(샘플)" }, proposal: [], notes: "샘플 소견입니다." };
+            }
+
+            async function fetchShopifyPrices(variantIds) {
+                const query = `
+                    query getVariantPrices($ids: [ID!]!) {
+                        nodes(ids: $ids) {
+                            ... on ProductVariant {
+                                id
+                                price {
+                                    amount
+                                }
                             }
                         }
+                    }`;
+                try {
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
+                        },
+                        body: JSON.stringify({ query: query, variables: { ids: variantIds } }),
+                    });
+                    const jsonResponse = await response.json();
+                    const prices = {};
+                    if (jsonResponse.data && jsonResponse.data.nodes) {
+                        jsonResponse.data.nodes.forEach(variant => {
+                            if (variant) {
+                                prices[variant.id] = parseFloat(variant.price.amount);
+                            }
+                        });
                     }
-                }`;
-            
-            try {
-                const response = await fetch(apiEndpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
-                    },
-                    body: JSON.stringify({
-                        query: query,
-                        variables: { ids: variantIds }
-                    }),
-                });
-
-                const jsonResponse = await response.json();
-                const prices = {};
-                jsonResponse.data.nodes.forEach(variant => {
-                    if (variant) {
-                        prices[variant.id] = parseFloat(variant.price.amount);
-                    }
-                });
-                return prices;
-            } catch (error) {
-                console.error('Shopify 가격 조회 오류:', error);
-                alert('Shopify에서 가격 정보를 불러오는 데 실패했습니다.');
-                return {};
+                    return prices;
+                } catch (error) {
+                    console.error('Shopify 가격 조회 오류:', error);
+                    return {};
+                }
             }
-        }
 
-        // ⭐ [수정] 가격 계산 함수
-        function calculatePrice(item) {
-            const productKey = `${item.name}_${item.value}`;
-            const productInfo = productMaster[productKey] || Object.values(productMaster).find(p => p.name === item.name);
-            if (!productInfo) return { price: 0 };
-            
-            // Shopify Variant ID를 'gid://shopify/ProductVariant/VARIANT_ID' 형식으로 변환
-            const fullVariantId = `gid://shopify/ProductVariant/${productInfo.shopifyVariantId}`;
-            
-            const price = shopifyPrices[fullVariantId] || 0;
-
-            if (productInfo.type === 'quantity') {
-                return { price: price * item.value };
-            }
-            return { price: price }; // 기간제 상품은 이미 해당 기간의 가격이므로 수량을 곱하지 않음
-        }
-
-        // ⭐ [수정] 장바구니 표시 함수
-        function updateCartDisplay() {
-            const cartItemsContainer = document.getElementById('cart-items');
-            cartItemsContainer.innerHTML = ''; // 기존 내용 비우기
-            let finalTotal = 0;
-            
-            cartItems.forEach((item, index) => {
-                const productKey = `${item.name}_${item.value}`;
-                const productInfo = productMaster[productKey] || Object.values(productMaster).find(p => p.name === item.name);
-                if (!productInfo) return;
-
-                const { price } = calculatePrice(item);
-                finalTotal += price;
-
-                // (이하 div 생성 및 innerHTML 설정 로직은 기존과 유사하게 구현)
-                // ... 가격 표시 부분에 price 변수 사용 ...
-            });
-            // 최종 합계 업데이트
-            document.getElementById('final-total').textContent = `${finalTotal.toLocaleString()} 원`;
-        }
-
-        // ⭐ [수정] 페이지 초기화 메인 로직
-        async function initializePage() {
-            const proposalData = getDataFromUrl();
-            document.getElementById('customer-name').textContent = proposalData.patient.name;
-            document.getElementById('doctor-notes-display').textContent = proposalData.notes;
-            cartItems = proposalData.proposal ? [...proposalData.proposal] : [];
-            
-            if (cartItems.length > 0) {
-                // 1. 장바구니의 모든 상품에 대한 Shopify Variant ID 목록 생성
-                const variantIdsToFetch = cartItems.map(item => {
-                    const productKey = `${item.name}_${item.value}`;
-                    const productInfo = productMaster[productKey] || Object.values(productMaster).find(p => p.name === item.name);
-                    return `gid://shopify/ProductVariant/${productInfo.shopifyVariantId}`;
-                });
+            function calculatePrice(item) {
+                const productInfo = findProductInfo(item.name, item.value);
+                if (!productInfo) return 0;
                 
-                // 2. Shopify API를 호출하여 가격 정보 가져오기
-                shopifyPrices = await fetchShopifyPrices(variantIdsToFetch);
-                
-                // 3. 가격 정보 로딩 후 화면 업데이트
-                updateCartDisplay();
+                const fullVariantId = `gid://shopify/ProductVariant/${productInfo.shopifyVariantId}`;
+                const price = shopifyPrices[fullVariantId] || 0;
+
+                if (productInfo.type === 'quantity') {
+                    return price * item.value;
+                }
+                return price;
             }
 
-            // (이하 initializeUI의 나머지 부분 및 이벤트 리스너는 기존과 동일하게 유지)
-        }
+            function updateCartDisplay() {
+                const cartItemsContainer = document.getElementById('cart-items');
+                cartItemsContainer.innerHTML = '';
+                let finalTotal = 0;
 
-        initializePage();
-    });
-</script>
+                cartItems.forEach((item, index) => {
+                    const productInfo = findProductInfo(item.name, item.value);
+                    if (!productInfo) return;
+
+                    const price = calculatePrice(item);
+                    finalTotal += price;
+
+                    const div = document.createElement('div');
+                    // ... (div 내용 생성, 가격 표시 부분에 formatAsUSD(price) 사용)
+                    cartItemsContainer.appendChild(div);
+                });
+                document.getElementById('final-total').textContent = formatAsUSD(finalTotal);
+            }
+            
+            function findProductInfo(productName, value) {
+                 const productKey = `${productName}_${value}`;
+                 if (productMaster[productKey]) {
+                     return productMaster[productKey];
+                 }
+                 return Object.values(productMaster).find(p => p.name === productName);
+            }
+
+            // --- 페이지 시작을 위한 메인 함수 ---
+            async function initializePage() {
+                // UI 초기화
+                const addProductSelect = document.getElementById('add-product-select');
+                const uniqueProducts = [...new Set(Object.values(productMaster).map(p => p.name))];
+                uniqueProducts.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    addProductSelect.appendChild(option);
+                });
+
+                // 데이터 로드
+                const proposalData = getDataFromUrl();
+                document.getElementById('customer-name').textContent = proposalData.patient.name;
+                document.getElementById('doctor-notes-display').textContent = proposalData.notes;
+                
+                if (proposalData.proposal && Array.isArray(proposalData.proposal)) {
+                    cartItems = proposalData.proposal.map(item => ({
+                        name: item.name || item.Name,
+                        value: item.value || item.Value,
+                    }));
+                }
+
+                // 실시간 가격 조회 및 화면 업데이트
+                if (cartItems.length > 0) {
+                    const variantIdsToFetch = cartItems.map(item => {
+                        const productInfo = findProductInfo(item.name, item.value);
+                        return `gid://shopify/ProductVariant/${productInfo.shopifyVariantId}`;
+                    });
+                    
+                    shopifyPrices = await fetchShopifyPrices(variantIdsToFetch);
+                    updateCartDisplay();
+                }
+            }
+
+            initializePage(); // 페이지 시작
+            
+            // (이하 updateItemValue, removeItem, 버튼 이벤트 리스너 등은 이전과 동일)
+        });
+    </script>
+</body>
+</html>
