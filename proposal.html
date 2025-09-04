@@ -60,14 +60,14 @@
             const apiEndpoint = `https://${shopifyDomain}/api/2023-10/graphql.json`;
             // ---------------------------------------------------------
 
-            // productMaster는 이제 가격이 아닌 Shopify Variant ID만 관리합니다.
             const productMaster = {
-                'Body Recording Core_1': { name: 'Body Recording Core', type: 'duration', desc: "1개월 기본 플랜", shopifyVariantId: '4123456789' },
-                'Body Recording Core_3': { name: 'Body Recording Core', type: 'duration', desc: "3개월 집중 플랜", shopifyVariantId: '4123456790' },
-                'Body Recording Core_6': { name: 'Body Recording Core', type: 'duration', desc: "6개월 장기 플랜", shopifyVariantId: '4123456791' },
-                'Body Recording Core_12': { name: 'Body Recording Core', type: 'duration', desc: "12개월 프리미엄 플랜", shopifyVariantId: '4123456792' },
-                'LEEMOONWON Shampoo 200ml': { name: 'LEEMOONWON Shampoo 200ml', type: 'quantity', desc: "탈모 증상 완화 샴푸", shopifyVariantId: '4123456800' },
-            };
+    '바디리코딩 코어_1': { name: '바디리코딩 코어', type: 'duration', ... },
+    '바디리코딩 코어_3': { name: '바디리코딩 코어', type: 'duration', ... },
+    '바디리코딩 코어_6': { name: '바디리코딩 코어', type: 'duration', ... },
+    '바디리코딩 코어_12': { name: '바디리코딩 코어', type: 'duration', ... },
+    '이문원 샴푸 200ml': { name: '이문원 샴푸 200ml', type: 'quantity', ... },
+    // ... 다른 제품들도 Make.com에서 오는 한글 이름과 똑같이 맞춰주세요 ...
+};
 
             let cartItems = [];
             let shopifyPrices = {}; // Shopify에서 가져온 실시간 가격을 저장할 객체
@@ -205,3 +205,4 @@
     </script>
 </body>
 </html>
+
