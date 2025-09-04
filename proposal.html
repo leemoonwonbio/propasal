@@ -68,20 +68,16 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // ⭐⭐⭐ 이 함수가 URL 인코딩 방식에 맞게 수정되었습니다 ⭐⭐⭐
             function getDataFromUrl() {
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
                     const dataParam = urlParams.get('data');
                     if (dataParam) {
-                        // URL 디코딩 후 JSON 파싱
-                        const decodedData = JSON.parse(decodeURIComponent(dataParam));
-                        return decodedData;
+                        return JSON.parse(decodeURIComponent(dataParam));
                     }
                 } catch (error) {
                     console.error("URL 데이터 파싱 중 오류 발생:", error);
                 }
-                // URL에 데이터가 없거나 오류 발생 시 사용할 샘플 데이터
                 console.warn("URL에서 데이터를 찾을 수 없어 샘플 데이터로 초기화합니다.");
                 return {
                     patient: { name: "OOO(샘플)" },
@@ -91,11 +87,14 @@
             }
 
             const productMaster = {
-                'Body Recording Core_1': { name: 'Body Recording Core', duration: 1, p1: 480000, type: 'duration', desc: "...", shopifyVariantId: '4123456789' },
-                'Body Recording Core_3': { name: 'Body Recording Core', duration: 3, p1: 480000, p3: 432000, type: 'duration', desc: "...", shopifyVariantId: '4123456790' },
-                'Body Recording Core_6': { name: 'Body Recording Core', duration: 6, p1: 480000, p6: 408000, type: 'duration', desc: "...", shopifyVariantId: '4123456791' },
-                'Body Recording Core_12': { name: 'Body Recording Core', duration: 12, p1: 480000, p12: 384000, type: 'duration', desc: "...", shopifyVariantId: '4123456792' },
-                'LEEMOONWON Shampoo 200ml': { name: 'LEEMOONWON Shampoo 200ml', p1: 65000, type: 'quantity', desc: "...", shopifyVariantId: '4123456800' },
+                // 이 부분은 실제 판매 상품에 맞게 채워주세요. Shopify Variant ID가 정확해야 합니다.
+                'Body Recording Core_1': { name: 'Body Recording Core', duration: 1, p1: 480000, type: 'duration', desc: "1개월 기본 플랜", shopifyVariantId: '4123456789' },
+                'Body Recording Core_3': { name: 'Body Recording Core', duration: 3, p1: 480000, p3: 432000, type: 'duration', desc: "3개월 집중 플랜", shopifyVariantId: '4123456790' },
+                'Body Recording Core_6': { name: 'Body Recording Core', duration: 6, p1: 480000, p6: 408000, type: 'duration', desc: "6개월 장기 플랜", shopifyVariantId: '4123456791' },
+                'Body Recording Core_12': { name: 'Body Recording Core', duration: 12, p1: 480000, p12: 384000, type: 'duration', desc: "12개월 프리미엄 플랜", shopifyVariantId: '4123456792' },
+                'LEEMOONWON Shampoo 200ml': { name: 'LEEMOONWON Shampoo 200ml', p1: 65000, type: 'quantity', desc: "탈모 증상 완화 샴푸", shopifyVariantId: '4123456800' },
+                '바디리코딩 나이트 리셋': { name: '바디리코딩 나이트 리셋', p1: 80000, type: 'duration', desc: "수면 보조 영양제", shopifyVariantId: '4123456801' },
+                '이문원 딥 헤어 트리트먼트팩': { name: '이문원 딥 헤어 트리트먼트팩', p1: 55000, type: 'quantity', desc: "손상모 집중 케어", shopifyVariantId: '4123456802' }
             };
 
             let cartItems = [];
@@ -104,7 +103,7 @@
             function loadProposalData() {
                 const proposalData = getDataFromUrl();
                 
-                if(!proposalData) {
+                if(!proposalData || !proposalData.patient) {
                     console.error("Proposal 데이터를 로드할 수 없습니다.");
                     return;
                 }
@@ -112,9 +111,22 @@
                 document.getElementById('customer-name').textContent = proposalData.patient.name;
                 document.getElementById('doctor-notes-display').textContent = proposalData.notes;
                 
-                cartItems = proposalData.proposal ? [...proposalData.proposal] : [];
+                // ⭐⭐⭐ [핵심 수정] 대소문자 문제 해결 로직 ⭐⭐⭐
+                // proposal 배열의 각 아이템의 키를 소문자(name, value)로 통일시켜줍니다.
+                if (proposalData.proposal && Array.isArray(proposalData.proposal)) {
+                    cartItems = proposalData.proposal.map(item => ({
+                        name: item.name || item.Name, // 'name'이 없으면 'Name'을 사용
+                        value: item.value || item.Value, // 'value'가 없으면 'Value'를 사용
+                    }));
+                } else {
+                    cartItems = [];
+                }
+                // ⭐⭐⭐ 수정 끝 ⭐⭐⭐
+                
                 updateCartDisplay();
             }
+
+            // (이하 나머지 모든 자바스크립트 코드는 수정 없이 동일합니다)
 
             function initializeUI() {
                 const addProductSelect = document.getElementById('add-product-select');
@@ -143,21 +155,29 @@
 
                 cartItems.forEach((item, index) => {
                     const productInfo = findProductInfo(item.name, item.value);
-                    if (!productInfo) return;
+                    if (!productInfo) {
+                        console.warn(`Product not found in productMaster: ${item.name}`);
+                        return;
+                    }
 
                     const div = document.createElement('div');
                     div.className = 'cart-item py-6';
                     const isDuration = productInfo.type === 'duration';
                     
-                    const detailsHTML = isDuration ? `
-                        <select class="p-2 border rounded-md w-full" data-index="${index}" onchange="updateItemValue(this)">
-                            <option value="1" ${item.value === 1 ? 'selected' : ''}>1개월</option>
-                            <option value="3" ${item.value === 3 ? 'selected' : ''}>3개월 (10% 할인)</option>
-                            <option value="6" ${item.value === 6 ? 'selected' : ''}>6개월 (15% 할인)</option>
-                            <option value="12" ${item.value === 12 ? 'selected' : ''}>12개월 (20% 할인)</option>
-                        </select>
-                    ` : `<input type="number" value="${item.value}" min="1" class="p-2 border rounded-md w-24 text-center" data-index="${index}" onchange="updateItemValue(this)">`;
-
+                    let detailsHTML;
+                    if (isDuration) {
+                        const durationOptions = [1, 3, 6, 12].filter(d => productMaster[`${item.name}_${d}`]);
+                        if(durationOptions.length > 0) {
+                             detailsHTML = `<select class="p-2 border rounded-md w-full" data-index="${index}" onchange="updateItemValue(this)">
+                                ${durationOptions.map(d => `<option value="${d}" ${item.value === d ? 'selected' : ''}>${d}개월</option>`).join('')}
+                            </select>`;
+                        } else {
+                            detailsHTML = `<span>${item.value} 개월</span>`;
+                        }
+                    } else {
+                       detailsHTML = `<input type="number" value="${item.value}" min="1" class="p-2 border rounded-md w-24 text-center" data-index="${index}" onchange="updateItemValue(this)">`;
+                    }
+                    
                     const { discountedPrice, originalPrice } = calculatePrice(item.name, item.value);
 
                     div.innerHTML = `
@@ -183,28 +203,37 @@
             }
 
             function findProductInfo(productName, value) {
-                if (productMaster[`${productName}_${value}`]) {
-                    return productMaster[`${productName}_${value}`];
+                const product = Object.values(productMaster).find(p => p.name === productName);
+                if (!product) return null;
+                
+                if (product.type === 'duration') {
+                    return productMaster[`${productName}_${value}`] || product;
                 }
-                return Object.values(productMaster).find(p => p.name === productName);
+                return product;
             }
 
             function calculatePrice(productName, value) {
                 const productInfo = findProductInfo(productName, value);
                 if (!productInfo) return { discountedPrice: 0, originalPrice: 0 };
+
                 if (productInfo.type === 'quantity') {
-                    const price = productInfo.p1 * value;
+                    const price = (productInfo.p1 || 0) * value;
                     return { discountedPrice: price, originalPrice: price };
-                } else {
+                } else if (productInfo.type === 'duration') {
                     const duration = value;
-                    let monthlyPrice = productInfo.p1;
-                    if (duration >= 12 && productInfo.p12) monthlyPrice = productInfo.p12;
-                    else if (duration >= 6 && productInfo.p6) monthlyPrice = productInfo.p6;
-                    else if (duration >= 3 && productInfo.p3) monthlyPrice = productInfo.p3;
-                    const discountedPrice = monthlyPrice * duration;
-                    const originalPrice = productInfo.p1 * duration;
-                    return { discountedPrice, originalPrice };
+                    const specificProduct = productMaster[`${productName}_${duration}`];
+                    
+                    if (specificProduct) {
+                         const monthlyPrice = specificProduct[`p${duration}`] || specificProduct.p1;
+                         const discountedPrice = monthlyPrice * duration;
+                         const originalPrice = (productMaster[`${productName}_1`]?.p1 || 0) * duration;
+                         return { discountedPrice, originalPrice };
+                    }
                 }
+                // Fallback for duration products not found with specific key
+                const basePrice = productInfo.p1 || 0;
+                const price = basePrice * value;
+                return { discountedPrice: price, originalPrice: price };
             }
             
             window.updateItemValue = function(element) {
@@ -226,6 +255,8 @@
                 const value = parseInt(document.getElementById('add-product-quantity').value, 10);
                 
                 const productInfo = findProductInfo(name, value);
+                if (!productInfo) return;
+
                 const existingItem = cartItems.find(item => item.name === name);
                 
                 if (existingItem && productInfo.type === 'quantity') {
@@ -252,6 +283,8 @@
                     if (productInfo && productInfo.shopifyVariantId) {
                         const quantity = productInfo.type === 'duration' ? 1 : item.value;
                         itemsForUrl.push(`${productInfo.shopifyVariantId}:${quantity}`);
+                    } else {
+                        console.error("Shopify Variant ID not found for:", item.name, item.value);
                     }
                 });
 
