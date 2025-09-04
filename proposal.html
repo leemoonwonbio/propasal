@@ -87,7 +87,6 @@
                 };
             }
 
-            // ⭐ [복원] Shopify API 연동 대신, 하드코딩된 가격표를 사용하는 방식으로 되돌립니다.
             const productMaster = {
                 '바디리코딩 코어_1': { name: '바디리코딩 코어', duration: 1, p1: 480000, type: 'duration', desc: "1개월 기본 플랜", shopifyVariantId: '4123456789' },
                 '바디리코딩 코어_3': { name: '바디리코딩 코어', duration: 3, p1: 480000, p3: 432000, type: 'duration', desc: "3개월 집중 플랜", shopifyVariantId: '4123456790' },
@@ -99,7 +98,7 @@
             
             let cartItems = [];
             const shopifyDomain = 'your-store-name.myshopify.com';
-            
+
             function loadProposalData() {
                 const proposalData = getDataFromUrl();
                 if(!proposalData || !proposalData.patient) { return; }
@@ -168,7 +167,6 @@
                     
                     const { discountedPrice, originalPrice } = calculatePrice(item.name, item.value);
 
-                    // ⭐ [복원] 가격 표시를 '원' 단위로 되돌립니다.
                     div.innerHTML = `
                         <div class="flex justify-between items-start">
                             <div class="flex-grow pr-4">
@@ -242,8 +240,10 @@
             document.getElementById('add-product-btn').addEventListener('click', () => {
                 const name = document.getElementById('add-product-select').value;
                 const value = parseInt(document.getElementById('add-product-quantity').value, 10);
+                
                 const productInfo = findProductInfo(name, value);
                 if (!productInfo) return;
+
                 const existingItem = cartItems.find(item => item.name === name);
                 
                 if (existingItem && productInfo.type === 'quantity') {
@@ -261,8 +261,10 @@
                     alert('플랜에 추가된 항목이 없습니다.');
                     return;
                 }
+                
                 let checkoutUrl = `https://${shopifyDomain}/cart/`;
                 const itemsForUrl = [];
+
                 cartItems.forEach(item => {
                     const productInfo = findProductInfo(item.name, item.value);
                     if (productInfo && productInfo.shopifyVariantId) {
@@ -272,6 +274,7 @@
                         console.error("Shopify Variant ID not found for:", item.name, item.value);
                     }
                 });
+
                 if (itemsForUrl.length > 0) {
                     checkoutUrl += itemsForUrl.join(',');
                     console.log("생성된 Shopify 결제 URL:", checkoutUrl);
